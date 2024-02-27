@@ -1,21 +1,25 @@
-# Essencials
-import threading # responsivity, i guess
-import os # console UI
-import pyautogui # mouse  
-import keyboard # keyboard, duhn
+# Essentials
+import threading # run multiple macros simultaneously
+import os # Console UI
+import pyautogui # Automation
+import keyboard # Keyboard Listener
+
 
 # Macros spefic
 import time 
-import random
-import pydirectinput
+#import random
+
 
 # Control variable to exit safely
 running = True
+def shutdown():
+    global running
+    running = False
+
 
 # BASE CLASS, DO NOT TOUCH IT!!!
 class Macro():
-        def __init__(self, key: str, mode: str):
-            self.key = key.lower()
+        def __init__(self, mode: str):
             self.mode = mode.lower()
             self.isEnabled = False
         
@@ -51,46 +55,38 @@ class AutoClicker(Macro):
 ####################
 
 # Insert you own macro into this list, remember to specify hotkey and mode
-allMacros = [
-            # YOUR MACRO GOES HERE,
-            exampleSingle("F1", "single"),
-            exampleLoop("F2", "loop"),
-            AutoClicker("F3", "loop"), 
-        ]
+allMacros = {
+                # YOUR MACRO GOES HERE
+                "f1" : exampleSingle("single"),
+                "f2" : exampleLoop("loop"),
+                "f3" : AutoClicker("loop"),
+            }
+
 
 # Console Interface
-def updateConsole(needUpdate: bool):
-    if (needUpdate):
-        os.system('cls')
-        print("========[ Macros ]========")
-        for macro in allMacros:
-            print(f"[{macro.key.upper()}] {macro.__class__.__name__+':':<15} {('On' if macro.isEnabled else 'Off') if macro.mode == 'loop' else r'N/A':>5}")
+def updateConsole():
+    os.system('cls')
+    print("========[ Macros ]========")
+    for key in allMacros.keys():
+        macro = allMacros[key]
+        print(f"[{key}] {macro.__class__.__name__+':':<15} {('On' if macro.isEnabled else 'Off') if macro.mode == 'loop' else r'N/A':>5}")
+    print("[Esc] Exit")
 # Set console size
-cmd = f'mode 27, {int(1.5*len(allMacros))}'
-os.system(cmd)
+'''cmd = f'mode 27, {int(1.5*len(allMacros))}'
+os.system(cmd)'''
 
-# Keyboard Listener
+
+# Keyboard Listener | replace this w/ keyboard.hook_key in the future
 def keyPress(event):
-    needUpdate = False
-    for macro in allMacros:
-            # Debug Key Listener
-            #print(event.name)
-
-            # Exit
-            if (event.event_type == keyboard.KEY_DOWN) and (event.name.lower() == "z"):
-                global running
-                running = False
-                for t in macroThreadhs:
-                    t.join()
-
-            # Toggle Macro
-            if (event.event_type == keyboard.KEY_DOWN) and (event.name.lower() == macro.key):
-                macro.toggle()
-                needUpdate = True
-    updateConsole(needUpdate)
+    if (event.event_type == keyboard.KEY_DOWN):
+        if (event.name == 'esc'): shutdown()
+        elif (allMacros.get(event.name, False)): 
+            allMacros[event.name].toggle()
+            updateConsole()
 keyboard.hook(keyPress)
 
-macroThreadhs = [threading.Thread(target=macro.run) for macro in allMacros]
+
+macroThreadhs = [threading.Thread(target=i.run) for i in allMacros.values()]
 for t in macroThreadhs:
     t.start()
-updateConsole(True)
+updateConsole()
